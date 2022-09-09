@@ -138,7 +138,11 @@ a <= b;
 
 ------------------------------------------------------------------------
 
+<<<<<<< HEAD
 -   **将函数`dim is.numeric is.character is.logical length`应用到下面的`vector`，并展示结果；**
+=======
+-   **将函数`dim`, `is.numeric`, `is.character`, `is.logical, `length`应用到下面的`vector`，并展示结果；**
+>>>>>>> a250b1b5f2819d6fd1eb631346cd373683e0b1bd
 
 `x <- 1:12`
 
