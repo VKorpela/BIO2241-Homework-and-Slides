@@ -73,7 +73,6 @@ Sys.info()[["user"]]
 Sys.getenv("HOME")
 ```
 
-
 ## 练习与作业1，`data.frame`
 
 注：以下内容来自 <https://www.r-exercises.com/>。
@@ -84,11 +83,18 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 先生成前三列；
+df1 <- data.frame(
+  Age = c(25, 31, 23, 52, 76, 49, 26),
+  Height = c(177, 163,  190, 179, 163, 183, 164),
+  Weight = c(57, 69, 83, 75, 70, 83, 53),
+  row.names = c("Alex", "Lilly", "Mark", "Oliver", "Martha", "Lucas", "Caroline")
+)
 
 ## 再插入第四列
+df1 <- cbind(df1, Sex = c("F", "F", "M", "M", "F", "M", "F"))
 
 ## 显示最终结果
-
+df1
 ```
 
 ------------------------------------------------------------------------
@@ -99,11 +105,17 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 生成 data.frame
+df2 <- data.frame(
+  Working = c("Yes", "No", "No", "Yes", "Yes", "No", "Yes"),
+  row.names = c("Alex", "Lilly", "Mark", "Oliver", "Martha", "Lucas", "Caroline"),
+  stringsAsFactors = FALSE
+)
 
 ## 显示结果
+df2
 
 ## 显示 Working 列的性质
-
+class(df2[["Working"]])
 ```
 
 ------------------------------------------------------------------------
@@ -112,6 +124,9 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+state.center
+
+as.data.frame(state.center)
 ```
 
 ------------------------------------------------------------------------
@@ -120,7 +135,9 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
-
+df3 <- as.data.frame(matrix(sample(1:1000, 250), nrow = 50))
+row.names(df3) <- paste("row_", 1:50, sep = "")
+df3
 ```
 
 ------------------------------------------------------------------------
@@ -135,7 +152,13 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+class(VADeaths)
+df4 <- as.data.frame(VADeaths)
 
+df4 <- cbind(df4, Total = rowSums(df4))
+df4 <- df4[, c(5, 1, 2, 3, 4)]
+
+df4
 ```
 
 ------------------------------------------------------------------------
@@ -150,7 +173,11 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+df5 <- as.data.frame(swiss)[c(1:3, 10:13), c("Examination", "Education", "Infant.Mortality")]
+df5["Sarine", "Infant.Mortality"] <- NA
+df5 <- cbind(df5, Mean = rowMeans(df5))
 
+df5
 ```
 
 ------------------------------------------------------------------------
@@ -165,16 +192,20 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
-
+Id <- LETTERS
+x <- seq(1, 43, along.with = Id)
+y <- seq(-20, 0, along.with = Id)
+df6 <- data.frame(Id, x, y)
+df6
 ```
 
 **问：** `seq`函数中的`along.with` 参数的意义是什么？请举例说明。
 
-答：
+答：`along.with`参数的意义是使`seq`输出的向量长度与`along.with`给定的向量一致。例如说`seq(0, 10, along.with = 1:101)`就会自动计算步长，输出长度为101的向量。
 
 ```{r}
 ## 代码写这里，并运行；
-
+seq(0, 10, along.with = 1:101)
 ```
 
 ------------------------------------------------------------------------
@@ -208,7 +239,19 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+df1 <- data.frame(
+  Id = 1:4,
+  Age = c(14, 12, 15, 10)
+)
 
+df2 <- data.frame(
+  Id = 1:4,
+  Sex = c("F", "M", "M", "F"),
+  Code = c("a", "b", "c", "d")
+)
+
+M <- merge(df1, df2, by.df1 = "Id", by.df2 = "Id")
+M
 ```
 
 ------------------------------------------------------------------------
@@ -217,7 +260,8 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
-
+M["Code"] <- NULL
+M
 ```
 
 ------------------------------------------------------------------------
@@ -237,7 +281,7 @@ Sys.getenv("HOME")
     ## 5. 增加一列，其长度是3，可以吗？
     cbind(df3, newcol = 1:3);
 
-答：
+答：前三个可以，第四个不可以
 
 ## 练习与作业2，`tibble`
 
@@ -291,7 +335,14 @@ tibble(
 
 ```{r}
 ## 代码写这里，并运行；
+df <- tibble(
+  x = runif(5),
+  y = rnorm(5)
+)
 
+df["x"]
+
+df[["y"]]
 ```
 
 ------------------------------------------------------------------------
@@ -304,8 +355,9 @@ tibble(
 tb <- tibble( name = character(), age = integer(), salary = double() );
 
 ##增加三行随机数据；
+tb <- add_row(tb, name = sample(LETTERS, 3), age = sample(18:60, 3), salary = sample(100 * (40:400), 3))
 
-
+tb
 ```
 
 ------------------------------------------------------------------------
@@ -322,7 +374,7 @@ tb <- tibble( name = character(), age = integer(), salary = double() );
 
 问：为什么？tibble 循环的规则是什么？
 
-答：
+答：因为`data.frame`可以循环使用长度能够整除行数的向量，而`tibble`只能重复使用长度为1的向量。
 
 ------------------------------------------------------------------------
 
@@ -330,7 +382,19 @@ tb <- tibble( name = character(), age = integer(), salary = double() );
 
 问：这个两个函数的用途是什么？请用 `iris` 这个系统自带变量举例说明。
 
-答：
+答：`attach`可以将数据按列加载到环境变量中，便于直接访问。`detach`则可以卸载`attach`加载的数据。
+
+```{r}
+# 加载以前Sepal.Length无法直接访问，需要指明数据
+iris[["Sepal.Length"]][1:5]
+
+# 使用attach加载iris后可以直接通过环境变量访问iris中的列
+attach(iris)
+Sepal.Length[1:5]
+
+# 使用detach卸载后重新回到开始时无法访问的状态
+detach(iris)
+```
 
 ------------------------------------------------------------------------
 
@@ -342,24 +406,49 @@ tb <- tibble( name = character(), age = integer(), salary = double() );
 
 ```{r}
 ## 代码写这里，并运行；
-
+class(airquality)
+as_tibble(airquality)
 ```
 
 ------------------------------------------------------------------------
 
 -   **问：`tibble::enframe`函数的用途是什么？请举例说明：**
 
-答：
+答：`tibble::enframe`可以将向量转变为带有`name`列的`tibble`类型数据。其中`name`列内容会根据向量中元素的命名情况自动生成。
+
+```{r}
+# 若无命名，name列为向量中的下标
+unnamed <- 10:1
+enframe(unnamed)
+
+# 若有命名，name列为命名内容
+named <- 10:1
+names(named) <- LETTERS[1:10]
+enframe(named)
+```
 
 ------------------------------------------------------------------------
 
 -   **简述`tibble`相比`data.frame`的优势？并用实例展示**
 
 答：
+1. `tibble`支持在创建的时候引用其中某一列的数据，`data.frame`不可以；
+2. 取数据的子集时数据类型稳定为`tibble`，而`data.frame`数据类型将随取的数据而定；
 
 ```{r}
 ## 代码写这里，并运行；
+## 1. 下面的代码可以正常执行（而在data.frame中不可）
+tb1 <- tibble(x = 1:10, y = 2 * x)
+tb1
 
+## 2. data.frame可能得到不同数据类型的subset，而tibble的subset一定为tibble
+df2 <- data.frame(v1 = 1:10, v2 = 10:1)
+class(df2[1, 1])
+class(df2[1:2])
+
+tb2 <- tibble(v1 = 1:10, v2 = 10:1)
+class(tb2[1, 1])
+class(tb2[1:2])
 ```
 
 ## 练习与作业3：IO
@@ -382,7 +471,25 @@ tb <- tibble( name = character(), age = integer(), salary = double() );
 
 ```{r}
 ## 用系统自带函数，并显示读取的内容；
+read.table("./data/Table0.txt", header = FALSE)
+read.table("./data/Table1.txt", header = TRUE)
+read.table("./data/Table2.txt", header = TRUE, skip = 2, quote = "/")
+read.table("./data/Table3.txt", header = TRUE, skip = 2, na.strings = c("--", "*", "**", "NA"))
+read.table("./data/Table4.txt", header = TRUE, dec = ",", na.strings = c("--", "*", "**", "NA"))
+read.table("./data/Table5.txt", header = TRUE, sep = ";", dec = ",", na.strings = c("--", "*", "**", "NA"))
+read.table("./data/Table6.txt", header = TRUE, skip = 2, comment.char = "@", nrows = 7)
+read.csv("./data/states1.csv", row.names = 1)
+read.csv2("./data/states2.csv", row.names = 1)
 
 ## 用readr 包的函数读取，并显示读取的内容；
-
+library(readr)
+read_table("./data/Table0.txt", col_names = FALSE)
+read_table("./data/Table1.txt", col_names = TRUE)
+read_table("./data/Table2.txt", col_names = TRUE, skip = 2)
+read_table("./data/Table3.txt", col_names = TRUE, skip = 2, na = c("--", "*", "**", "NA"))
+read_table("./data/Table4.txt", col_names = TRUE, na = c("--", "*", "**", "NA"))
+read_delim("./data/Table5.txt", delim = ";",col_names = TRUE, na = c("--", "*", "**", "NA"))
+read_table("./data/Table6.txt", col_names = TRUE, skip = 2, n_max = 7, comment = "@")
+read_csv("./data/states1.csv")
+read_csv2("./data/states2.csv")
 ```
