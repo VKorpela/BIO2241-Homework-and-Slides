@@ -63,7 +63,19 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+x <- 114; y <- "KRKS"; z <- 5.14;
+table1 <- read.table("./data/Table1.txt", header = TRUE)
 
+save.image(file = "talk04-homework-saved.RData")
+
+ls()
+rm(list = ls())
+
+load(file = "talk04-homework-saved.RData")
+ls()
+
+rm(x); rm(z);
+ls()
 ```
 
 ## 练习与作业2：Factor基础
@@ -86,7 +98,19 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+x <- c("single", "married", "married", "single")
 
+x <- as.factor(x)
+levels(x)
+
+# 以下操作不能成功
+x[3] <- "widowed"
+x
+
+# 解决方案
+levels(x) <- c(levels(x), "widowed")
+x[3] <- "widowed"
+x
 ```
 
 ### **factors 改变**
@@ -101,12 +125,16 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+v <- c("a", "b", "a", "c", "b")
+(v <- as.factor(v))
 
+levels(v)[1] <- "k"
+v
 ```
 
 -   比较改变前后的 `v` 的内容，改变levels 的操作使 `v` 发生了什么变化？
 
-答：
+答：改变levels的操作使得`v`的内容与levels同步发生了变化，但内容对应关系保持不变。
 
 ### **factors合并**
 
@@ -116,7 +144,10 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+(fact1 <- as.factor(sample(LETTERS, 10, replace = TRUE)))
+(fact2 <- as.factor(sample(LETTERS, 12, replace = TRUE)))
 
+(fact3 <- c(fact1, fact2))
 ```
 
 ------------------------------------------------------------------------
@@ -129,7 +160,18 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+mon <- c("Mar", "Nov", "Mar", "Aug", "Sep", "Jun", "Nov", "Nov", "Oct", "Jun", "May", "Sep", "Dec", "Jul", "Nov")
 
+# 包含的月份数
+length(unique(mon))
+
+# 按月份排序
+mon_levels <- c(
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  )
+mon_fact <- factor(mon, levels = mon_levels)
+sort(mon_fact)
 ```
 
 ------------------------------------------------------------------------
@@ -142,7 +184,20 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(forcats)
 
+# fct_inorder根据首次出现的顺序重新排列levels
+fct1 <- fct_inorder(gss_cat[["marital"]])
+levels(fct1)
+
+# fct_infreq根据出现频次从高到低重新排列levels
+fct2 <- fct_infreq(gss_cat[["marital"]])
+levels(fct2)
+
+# fct_inseq根据值从小到大重新排列levels
+# gss_cat中没有包含可以强制转换为数值的factor，故使用years列
+fct3 <- fct_inseq(as.factor(gss_cat[["year"]]))
+levels(fct3)
 ```
 
 ## 练习与作业3：用 mouse genes 数据做图
@@ -160,5 +215,46 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(tidyverse)
+gene <- read_tsv("../data/talk04/mouse_genes_biomart_sep2018.txt")
+chromo <- c(1:19, "X", "Y")
 
+gene.filtered <- gene %>% filter(`Chromosome/scaffold name` %in% chromo)
+gene.filtered$`Chromosome/scaffold name` <- 
+  factor(gene.filtered$`Chromosome/scaffold name`,
+         levels = chromo)
+
+plot1 <- 
+  ggplot(
+    data = gene.filtered, 
+    aes(
+      x = `Chromosome/scaffold name`, 
+      y = `Transcript length (including UTRs and CDS)`
+    )
+  ) +
+  geom_boxplot() +
+  coord_flip() +
+  xlab("Chromosome") +
+  ylab("Transcript length") +
+  ylim(0, 6000)
+plot1
+
+# ylim会删掉超范围的数据，可能会导致排序的结果和图上画出来的中值不一致
+# 所以为了数据符合直观，只有设置成这样了 :(
+plot2 <- 
+  ggplot(
+    data = gene.filtered, 
+    aes(
+      x = fct_reorder(`Chromosome/scaffold name`, 
+                  `Transcript length (including UTRs and CDS)`, 
+                  median),
+      y = `Transcript length (including UTRs and CDS)`
+    )
+  ) +
+  geom_boxplot() +
+  coord_flip() +
+  xlab("Chromosome") +
+  ylab("Transcript length") +
+  ylim(0, 6000)
+plot2
 ```
