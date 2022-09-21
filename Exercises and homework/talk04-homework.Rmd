@@ -66,12 +66,12 @@ Sys.getenv("HOME")
 x <- 114; y <- "KRKS"; z <- 5.14;
 table1 <- read.table("./data/Table1.txt", header = TRUE)
 
-save.image(file = "talk04-homework-saved.RData")
+save.image(file = "./talk04-homework-saved.RData")
 
 ls()
 rm(list = ls())
 
-load(file = "talk04-homework-saved.RData")
+load(file = "./talk04-homework-saved.RData")
 ls()
 
 rm(x); rm(z);
