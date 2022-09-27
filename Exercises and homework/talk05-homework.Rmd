@@ -58,7 +58,39 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(tidyverse)
+mouse.tibble <- read_tsv("../data/talk04/mouse_genes_biomart_sep2018.txt")
 
+# 预处理出基因数超过500的染色体或scaffold
+CHR_list <- mouse.tibble %>%
+  select(
+    CHR = `Chromosome/scaffold name`,
+    GENE_ID = `Gene stable ID`
+  ) %>%
+  group_by(CHR) %>%
+  summarise(count = n_distinct(GENE_ID)) %>%
+  filter(count > 500)
+CHR_list <- unique(CHR_list$CHR)
+
+# 筛选
+mouse.selected <- mouse.tibble %>% 
+  select(
+    CHR = `Chromosome/scaffold name`,
+    TYPE = `Transcript type`,
+    GENE_ID = `Gene stable ID`,
+    GENE_LEN = `Transcript length (including UTRs and CDS)`
+  ) %>%
+  group_by(CHR, TYPE) %>%
+  summarize(
+    gene_count = n_distinct(GENE_ID),
+    mean_len = mean(GENE_LEN),
+    max_len = max(GENE_LEN),
+    min_len = min(GENE_LEN)
+  ) %>%
+  filter(CHR %in% CHR_list) %>%
+  arrange(CHR, desc(gene_count))
+
+mouse.selected
 ```
 
 ------------------------------------------------------------------------
@@ -70,25 +102,51 @@ Sys.getenv("HOME")
 `library(dplyr);`
 `grades <- read_tsv( file = "data/talk05/grades.txt" );`
 
+```{r}
+grades <- read_tsv("../data/talk05/grades.txt")
+```
+
 2. 尝试使用`spread`和`gather`函数将其变宽后再变长；
 
 ```{r}
 ## 代码写这里，并运行；
+(grades.spreaded <- grades %>%
+  spread(course, grade, fill = NA))
 
+(grades.gathered <- grades.spreaded %>%
+  gather("course", "grade", -name))
 ```
 
 3. 研究并使用 `tidyr`包里的 `pivot_longer` 和 `pivot_wider` 函数对 `grades` 变量进行宽长转换；
 
 ```{r}
 ## 代码写这里，并运行；
+(grades.spreaded2 <- grades %>%
+  pivot_wider(
+    names_from = course,
+    values_from = grade,
+    values_fill = NA
+  ))
 
+(grades.gathered2 <- grades.spreaded2 %>%
+  pivot_longer(
+    cols = !name,
+    names_to = "course",
+    values_to = "grade"
+  ))
 ```
 
 4. 使用 `pivot_longer` 时，有时会产生 `na` 值，如何使用此函数的参数去除带 `na` 的行？
 
 ```{r}
 ## 代码写这里，并运行；
-
+(grades.gathered3 <- grades.spreaded2 %>%
+  pivot_longer(
+    cols = !name,
+    names_to = "course",
+    values_to = "grade",
+    values_drop_na = TRUE
+  ))
 ```
 
 
@@ -96,7 +154,7 @@ Sys.getenv("HOME")
 
 ` grades %>% complete( name, course ) `
 
-答：
+答：补全grades中所有可能的`name`列和`course`列的组合，对于表中没有取值的组合，用`NA`填充。
 
 
 ------------------------------------------------------------------------
@@ -119,7 +177,55 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+(grades2 <- tibble(
+  "Name" = c("Weihua Chen", "Mm Hu", "John Doe", "Jane Doe", "Warren Buffet", "Elon Musk", "Jack Ma"),
+  "Occupation" = c("Teacher", "Student", "Teacher", "Student", rep( "Entrepreneur", 3)),
+  "English" = sample(60:100, 7),
+  "ComputerScience" = sample(80:90, 7),
+  "Biology" = sample(50:100, 7),
+  "Bioinformatics" = sample(40:90, 7)
+))
 
+# 每个人最差的学科和成绩是什么？
+grades2 %>%
+  pivot_longer(
+    cols = !Name:Occupation,
+    names_to = "Course",
+    values_to = "Grade",
+    values_drop_na = TRUE
+  ) %>%
+  group_by(Name) %>%
+  filter(Grade == min(Grade)) %>%
+  summarize(
+    worst_course = Course,
+    worst_grade = Grade
+  )
+
+# 哪个职业的平均成绩最好？
+grades2 %>%
+  pivot_longer(
+    cols = !Name:Occupation,
+    names_to = "Course",
+    values_to = "Grade",
+    values_drop_na = TRUE
+  ) %>%
+  group_by(Occupation) %>%
+  summarise(ave_grade = mean(Grade)) %>%
+  arrange(desc(ave_grade))
+
+# 每个职业的最佳学科分别是什么？
+grades2 %>%
+  pivot_longer(
+    cols = !Name:Occupation,
+    names_to = "Course",
+    values_to = "Grade",
+    values_drop_na = TRUE
+  ) %>%
+  group_by(Occupation, Course) %>%
+  summarise(ave_grade = mean(Grade)) %>%
+  arrange(Occupation, desc(ave_grade)) %>%
+  group_by(Occupation) %>%
+  filter(ave_grade == max(ave_grade))
 ```
 
 ------------------------------------------------------------------------
@@ -131,7 +237,12 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+sw.bmi <- starwars %>%
+  mutate(bmi = mass / ((height / 100) ^ 2))
 
+sw.bmi %>%
+  filter(bmi >= 30 & species == "Human") %>%
+  summarise(name, sex, homeworld)
 ```
 
 3.  挑选出所有人类；
@@ -140,16 +251,42 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+sw.human <- sw.bmi %>%
+  filter(species == "Human" & !is.na(bmi)) %>%
+  mutate(
+    bmi_group = cut(
+      bmi,
+      c(0, 18, 25, Inf),
+      labels = c("<18", "18~25", ">25")
+    )
+  ) %>%
+  group_by(bmi_group) %>%
+  summarise(counts = n())
 
+plot1 <- 
+  ggplot(
+    data = sw.human,
+    aes(
+      x = bmi_group,
+      y = counts
+    )
+  ) +
+  geom_col() +
+  xlab("BMI") +
+  ylab("Counts")
+plot1
 ```
 
 6.  查看 `starwars` 的 `films` 列，它有什么特点？`data.frame`可以实现类似的功能吗？
 
-答：
+答：`films`列的每一项都是一个字符串列表，`data.frame`实现不了类似的功能。
 
 7.  为`starwars`增加一列，用于统计每个角色在多少部电影中出现。
 
 ```{r}
 ## 代码写这里，并运行；
+(starwars.expanded <- starwars %>%
+  mutate(film_count = lengths(films)))
 
+starwars.expanded$film_count
 ```
