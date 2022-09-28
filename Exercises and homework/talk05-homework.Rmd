@@ -178,8 +178,11 @@ grades <- read_tsv("../data/talk05/grades.txt")
 ```{r}
 ## 代码写这里，并运行；
 (grades2 <- tibble(
-  "Name" = c("Weihua Chen", "Mm Hu", "John Doe", "Jane Doe", "Warren Buffet", "Elon Musk", "Jack Ma"),
-  "Occupation" = c("Teacher", "Student", "Teacher", "Student", rep( "Entrepreneur", 3)),
+  "Name" = c("Weihua Chen", "Mm Hu", "John Doe",
+             "Jane Doe", "Warren Buffet", "Elon Musk",
+             "Jack Ma"),
+  "Occupation" = c("Teacher", "Student", "Teacher",
+                   "Student", rep("Entrepreneur", 3)),
   "English" = sample(60:100, 7),
   "ComputerScience" = sample(80:90, 7),
   "Biology" = sample(50:100, 7),
@@ -299,21 +302,32 @@ starwars.expanded$film_count
 
 ```{r}
 ## 代码写这里，并运行；
+theoph.tibble <- tibble(Theoph)
 
+theoph.tibble %>%
+  select(Subject:Dose) %>%
+  head()
+
+#总共有三列
 ```
 
 2. 用`filter` 选取 `Dose` 大于5，且 `Time` 高于 `Time` 列平均值的行；
 
 ```{r}
 ## 代码写这里，并运行；
-
+theoph.tibble %>%
+  filter(Dose > 5 & Time > ave(Time)) %>%
+  head()
 ```
 
 3. 用 `mutate` 函数产生新列 `trend`，其值为 `Time` 与 `Time`列平均值的差；注意：请去除可能产生的 `na` 值；
 
 ```{r}
 ## 代码写这里，并运行；
-
+theoph.tibble %>%
+  mutate(trend = Time - ave(Time)) %>%
+  drop_na(trend) %>%
+  head()
 ```
 
 4. 用 `mutate` 函数产生新列 `weight_cat` ，其值根据 `Wt`的取值范围而不同：
@@ -323,4 +337,15 @@ starwars.expanded$film_count
 * 如果 `Wt` > 66.68，为 'Light-middleweight'
 * 其它值，为 'Welterweight'
 
-
+```{r}
+theoph.tibble %>%
+  mutate(
+    weight_cat = cut(
+      Wt,
+      c(0, 66.68, 72.57, 76.2, Inf),
+      labels = c("Welterweight", "Light-middleweight",
+                 "Middleweight", "Super-middleweight")
+    )
+  ) %>%
+  head()
+```
