@@ -71,7 +71,55 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(tidyverse)
+library(tidytidbits)
 
+# 读取丰度数据
+abu <- read_delim(
+  file = "../data/talk06/relative_abundance_for_RUN_ERR1072629_taxonlevel_species.txt", 
+  delim = "\t",
+  quote = "", 
+  comment = "#"
+)
+
+# 取丰度前五高的微生物，其余归于Qita类
+abu.filtered <- abu %>%
+  arrange(desc(relative_abundance)) %>%
+  lump_rows(
+    scientific_name,
+    relative_abundance,
+    n = 5,
+    other_level = "Qita"
+  )
+abu.filtered
+
+# 绘制空心环状图
+abu.filtered$scientific_name <-
+  fct_relevel(
+    fct_reorder(
+      abu.filtered$scientific_name,
+      abu.filtered$relative_abundance,
+      .desc = TRUE
+    ),
+    "Qita", "Unknown",
+    after = Inf
+  )
+
+plot1 <- 
+  ggplot(
+    data = abu.filtered,
+    aes(
+      x = 3,
+      y = relative_abundance,
+      fill = scientific_name
+    )
+  ) +
+  geom_bar(stat = "identity") +
+  coord_polar(theta = "y", start = 0) +
+  xlim(c(1, 3.5)) +
+  labs(x = NULL, y = NULL, fill = "Scientific Name") +
+  theme_void()
+plot1
 ```
 
 ------------------------------------------------------------------------
@@ -93,21 +141,73 @@ ggplot(starwars, aes(x = hair_color)) +
 
 ```{r}
 ## 代码写这里，并运行；
+sw.hair <- starwars %>% 
+  filter(!is.na(hair_color))
 
+sw.hair$hair_color <-
+  fct_reorder(
+    sw.hair$hair_color,
+    sw.hair %>% 
+      group_by(hair_color) %>%
+      mutate(hair_count = n()) %>%
+      .$hair_count,
+    .desc = FALSE
+  )
+
+plot2 <- 
+  ggplot(sw.hair, aes(x = hair_color)) + 
+  geom_bar() + 
+  coord_flip()
+plot2
 ```
 
-2.  统计 `skin_color` 时，将出现频率小于0.05（即5%）的颜色归为一类`Others`，按出现次数排序后，做与上面类似的 barplot；
+2.  统计 `skin_color`时，将出现频率小于0.05（即5%）的颜色归为一类`Others`，按出现次数排序后，做与上面类似的 barplot；
 
 ```{r}
 ## 代码写这里，并运行；
+sw.skin <- starwars %>%
+  group_by(skin_color) %>%
+  summarise(
+    skin_rate = n() / count(starwars)[[1]],
+    skin_count = n()
+  ) %>%
+  lump_rows(
+    skin_color,
+    skin_rate,
+    prop = 0.05,
+    other_level = "Other"
+  )
 
+sw.skin$skin_color <-
+  fct_reorder(
+    sw.skin$skin_color,
+    sw.skin$skin_count,
+    .desc = FALSE
+  )
+
+plot3 <- 
+  ggplot(sw.skin, aes(x = skin_color, y = skin_count)) + 
+  geom_bar(stat = "identity") + 
+  coord_flip()
+plot3
 ```
 
 3.  使用 `2` 的统计结果，但画图时，调整 bar 的顺序，使得 `Others` 处于第4的位置上。提示，可使用 `fct_relevel` 函数；
 
 ```{r}
 ## 代码写这里，并运行；
+sw.skin$skin_color <-
+  fct_relevel(
+    sw.skin$skin_color,
+    "Other",
+    after = 3
+  )
 
+plot4 <- 
+  ggplot(sw.skin, aes(x = skin_color, y = skin_count)) + 
+  geom_bar(stat = "identity") + 
+  coord_flip()
+plot4
 ```
 
 ## 练习与作业2：数据分析
@@ -127,7 +227,38 @@ ggplot(starwars, aes(x = hair_color)) +
 
 ```{r}
 ## 代码写这里，并运行；
+library(igraph)
+ppi <- read_delim(
+    file = "../data/talk06/ppi900.txt.gz",
+    col_names = TRUE,
+    delim = "\t",
+    quote = ""
+  )
 
+genelist <- ppi %>%
+  filter(gene1 == "DRD2") %>%
+  arrange(desc(score)) %>%
+  slice(1:9) %>%
+  .$gene2
+genelist <- unique(c("DRD2", genelist))
+
+ppi.drd2 <- ppi %>%
+  filter(
+    gene1 %in% genelist &
+    gene2 %in% genelist
+  ) %>%
+  mutate(
+    group = if_else(
+      gene1 > gene2,
+      paste(gene1, gene2, sep="-"),
+      paste(gene2, gene1, sep="-"),
+    )
+  ) %>%
+  group_by(group) %>%
+  slice(1)
+
+net.drd2 <- graph_from_data_frame(ppi.drd2, directed = FALSE)
+plot(net.drd2)
 ```
 
 ### **对宏基因组 相对丰度数据 进行分析**
@@ -150,5 +281,13 @@ ggplot(starwars, aes(x = hair_color)) +
 
 ```{r}
 ## 代码写这里，并运行；
+sample073 <- 
+  read_tsv("./data/talk06/relative_abundance_for_curated_sample_PRJEB6070-DE-073_at_taxonlevel_species.txt", comment = "#", quote = "") %>%
+  select(scientific_name, relative_abundance) %>%
+  mutate(sample = "PRJEB6070-DE-073")
 
+sample074 <- 
+  read_tsv("./data/talk06/relative_abundance_for_curated_sample_PRJEB6070-DE-074_at_taxonlevel_species.txt", comment = "#", quote = "") %>%
+  select(scientific_name, relative_abundance) %>%
+  mutate(sample = "PRJEB6070-DE-074")
 ```
