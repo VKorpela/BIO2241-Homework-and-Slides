@@ -284,10 +284,36 @@ plot(net.drd2)
 sample073 <- 
   read_tsv("./data/talk06/relative_abundance_for_curated_sample_PRJEB6070-DE-073_at_taxonlevel_species.txt", comment = "#", quote = "") %>%
   select(scientific_name, relative_abundance) %>%
-  mutate(sample = "PRJEB6070-DE-073")
+  mutate(sample = "PRJEB6070-DE-073") 
 
 sample074 <- 
   read_tsv("./data/talk06/relative_abundance_for_curated_sample_PRJEB6070-DE-074_at_taxonlevel_species.txt", comment = "#", quote = "") %>%
   select(scientific_name, relative_abundance) %>%
   mutate(sample = "PRJEB6070-DE-074")
+
+sample075 <- 
+  read_tsv("./data/talk06/relative_abundance_for_curated_sample_PRJEB6070-DE-075_at_taxonlevel_species.txt", comment = "#", quote = "") %>%
+  select(scientific_name, relative_abundance) %>%
+  mutate(sample = "PRJEB6070-DE-075")
+
+sample076 <- 
+  read_tsv("./data/talk06/relative_abundance_for_curated_sample_PRJEB6070-DE-076_at_taxonlevel_species.txt", comment = "#", quote = "") %>%
+  select(scientific_name, relative_abundance) %>%
+  mutate(sample = "PRJEB6070-DE-076")
+
+sample077 <- 
+  read_tsv("./data/talk06/relative_abundance_for_curated_sample_PRJEB6070-DE-077_at_taxonlevel_species.txt", comment = "#", quote = "") %>%
+  select(scientific_name, relative_abundance) %>%
+  mutate(sample = "PRJEB6070-DE-077")
+
+sample.comb <- 
+  bind_rows(sample073, sample074, sample075,
+            sample076, sample077) %>%
+  pivot_wider(
+    names_from = scientific_name,
+    values_from = relative_abundance,
+    values_fill = 0,
+    values_fn = sum
+  )
+sample.comb
 ```
