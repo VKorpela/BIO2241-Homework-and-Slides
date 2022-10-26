@@ -73,7 +73,23 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(stringr)
+x <- c('weihua', 'chen')
 
+# 每个成员的长度
+str_length(x)
+
+# 每个成员首字母大写
+str_to_title(x)
+
+# 取每个成员的前两个字符
+str_sub(x, start = 1, end = 2)
+
+# 合并为一个用“, ”间隔的字符串
+str_c(x, collapse = ", ")
+
+# 数元音字母数量
+str_count(x, "[aeiou]")
 ```
 
 
@@ -87,7 +103,20 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(tidyverse)
+mtcars.tibble <- as_tibble(mtcars, rownames = "brandtype")
 
+# 筛选出所有的奔驰车
+mtcars.tibble %>%
+  filter(str_detect(brandtype, "Merc"))
+
+# 筛选出所有的非奔驰车
+mtcars.tibble %>%
+  filter(!str_detect(brandtype, "Merc"))
+
+# 品牌和车型分开
+mtcars.tibble %>%
+  separate(brandtype, c("brand", "type"), extra = "merge")
 ```
 
 
@@ -103,7 +132,8 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
-
+x <- c("abc", NA)
+str_c("|-", str_replace_na(x), "-|")
 ```
 
 
@@ -124,7 +154,15 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+# 筛选skin_color
+starwars %>%
+  filter(str_detect(skin_color, "white")) %>%
+  select(name, homeworld, species, skin_color)
 
+# 打印含有ar的名字
+starwars %>%
+  filter(str_detect(name, "[Aa][Rr]")) %>%
+  pull(name)
 ```
 
 ------------------------------------------------------------------------
@@ -142,7 +180,25 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+vec <- c("123", "abc", "wei555hua666")
 
+# 找出含有数字的字符串
+str_subset(vec, "\\d+")
+
+# 找出第一组数字的位置
+str_locate(vec, "\\d+")
+
+# 找出所有数字的位置
+str_locate_all(vec, "\\d+")
+
+# 提取出找到的数字
+str_extract(vec, "\\d+")
+
+# 提取所有的数字
+str_extract_all(vec, "\\d+")
+
+# 将数字替换为666
+str_replace_all(vec, "\\d+", "666")
 ```
 
 ## 练习与作业3：探索题
@@ -160,14 +216,28 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(scales)
+seq <- "ATCTCGGCGCGCATCGCGTACGCTACTAGC"
 
+# 反向互补序列
+cmpl_lower = c("A" = "t", "T" = "a", "G" = "c", "C" = "g")
+seq %>%
+  str_to_upper() %>%
+  str_replace_all(cmpl_lower) %>%
+  str_to_upper()
+
+# GC含量
+percent(str_count(seq, "[GC]") / str_length(seq))
+
+# 拆分为codon
+str_extract_all(seq, "[ATCG]{1,3}")
 ```
 
 ###   **问答**
 
 问：`stringr::str_pad` 的作用是什么？请举例回答
 
-答：
+答：将字符串补足到期望的长度。例如说`str_pad("3.14", 6, side = "right", pad = "0")`是在字符串的右侧补足`"0"`，使其长度为6。
 
 ### **提取字符串中的N次重复字段**
 
@@ -177,7 +247,8 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
-
+c("banana", "coconut", "1232323", "database") %>%
+  str_extract("(..)\\1{1,}")
 ```
 
 ### **正则表达式**
@@ -197,6 +268,6 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
-
+num.regex = regex("[+-]?\\d+(.\\d+)?")
 ```
 
