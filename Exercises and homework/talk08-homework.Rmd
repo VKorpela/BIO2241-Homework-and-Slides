@@ -62,7 +62,31 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(stringr)
 
+# 1. 
+for (it in 1:7)
+  print(it ^ 2)
+
+# 2.
+for (name in colnames(iris))
+  print(paste(name, " (", str_length(name), ")", sep = ""))
+
+# 3.
+while((rnd <- rnorm(1)) <= 1)
+  print(rnd)
+
+# 4.
+prev <- 0
+curr <- 1
+cnt <- 2
+while(curr < 1000000) {
+  cnt <- cnt + 1
+  nxt <- prev + curr
+  prev <- curr
+  curr <- nxt
+}
+print(cnt)
 ```
 
 
@@ -84,7 +108,35 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(tidyverse)
 
+# matrix生成
+matrix <- 
+  matrix(rnorm(10000), nrow = 100, ncol = 100)
+
+# 1. 
+rowMeans(matrix)
+colMeans(matrix)
+
+# 2.
+matrix %>% apply(., 1, mean)
+matrix %>% apply(., 2, mean)
+
+# 3.
+rowSums(matrix)
+colSums(matrix)
+
+# 4.
+matrix %>% apply(., 1, sum)
+matrix %>% apply(., 2, sum)
+
+# 5. 
+statCalc <- function(X) {
+  return(c("mean" = mean(X), "sum" = sum(X), "sd" = sd(X)))
+}
+
+matrix %>% apply(., 1, statCalc)
+matrix %>% apply(., 2, statCalc)
 ```
 
 ------------------------------------------------------------------------
@@ -101,6 +153,13 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(magrittr)
+
+# 1.
+mtcars %$% tapply(mpg, cyl, mean)
+
+# 2.
+mtcars %$% tapply(wt, cyl, mean)
 
 ```
 
@@ -116,7 +175,15 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+list <- list(a = 1:10, b = letters[1:5], c = LETTERS[1:8])
 
+# 1. 
+list %>% lapply(length)
+list %>% sapply(length)
+
+# 2.
+mtcars %>% lapply(mean)
+mtcars %>% sapply(mean)
 ```
 
 
@@ -128,7 +195,7 @@ Sys.getenv("HOME")
 
 生成一个变量：
 
-```
+```{r}
 df <- tibble(
   a = rnorm(10),
   b = rnorm(10),
@@ -144,7 +211,7 @@ df <- tibble(
 
 ```{r}
 ## 代码写这里，并运行；
-
+df %>% map(~c(mean(.), sum(.), median(.)))
 ```
 
 ------------------------------------------------------------------------
@@ -158,8 +225,12 @@ df <- tibble(
 
 ```{r}
 ## 代码写这里，并运行；
-
+mtcars %>%
+  split(.$cyl) %>%
+  map(~cor.test(.$mpg, .$wt)) %>%
+  map(~c("p.value" = .$p.value, .$estimate))
 ```
+
 ------------------------------------------------------------------------
 
 ###   **`keep`和`discard`**
@@ -170,8 +241,17 @@ df <- tibble(
 
 ```{r}
 ## 代码写这里，并运行；
+# 保留factor
+iris %>%
+  keep(is.factor) %>%
+  head(n = 10)
 
+# 移除factor
+iris %>%
+  discard(is.factor) %>%
+  head(n = 10)
 ```
+
 ------------------------------------------------------------------------
 
 ###   **用`reduce`**
@@ -186,7 +266,13 @@ c(1, 3, 5, 6, 10),
 
 ```{r}
 ## 代码写这里，并运行；
+vec <- list(
+  c(1, 3, 5, 6, 10),
+  c(1, 2, 3, 7, 8, 10),
+  c(1, 2, 3, 4, 8, 9, 10)
+)
 
+vec %>% reduce(intersect)
 ```
 
 ------------------------------------------------------------------------
@@ -202,8 +288,19 @@ dfs <- list(
 
 dfs %>% reduce(full_join);
 ```
+
 ```{r}
 ## 代码写这里，并运行；
+dfs <- list(
+  age = tibble(name = "John", age = 30),
+  sex = tibble(name = c("John", "Mary"), sex = c("M", "F")),
+  trt = tibble(name = "Mary", treatment = "A")
+)
+
+dfs %>%
+  bind_rows() %>%
+  gather(key = "key", value = "value", -name, na.rm = TRUE) %>%
+  spread(key, value)
 
 ```
 
@@ -249,5 +346,5 @@ summary(unlist(res));
 
 ```{r}
 ## 代码写这里，并运行；
-
+c(8, 7)
 ```
