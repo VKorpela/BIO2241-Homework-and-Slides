@@ -81,7 +81,47 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(tidyverse)
 
+# 1. 
+with(swiss, hist(Catholic, nclass = 10))
+
+ggplot(swiss, aes(x = Catholic)) +
+  geom_histogram(bins = 10)
+
+# 2.
+attach(swiss)
+swiss.linear <- lm(Fertility~Education)
+swiss.cor = cor.test(Education, Fertility)
+eq_text <- substitute(
+  atop(
+    italic(y) == a %.% italic(x) + b,
+    list(italic(r)^2 == r2, italic(p) == pvalue)
+  ),
+  list(
+    a = format(coef(swiss.linear)[[2]], digits = 2),
+    b = format(coef(swiss.linear)[[1]], digits = 2),
+    r2 = format(summary(swiss.linear)$r.squared, digits = 2),
+    pvalue = format(swiss.cor$p.value, digits = 2)
+  )
+)
+eq_text <- as.expression(eq_text)
+
+plot(Education, Fertility, type = "p")
+abline(swiss.linear)
+text(x = 40, y = 80, labels = eq_text)
+detach(swiss)
+
+eq_text <- as.character(eq_text)
+ggplot(swiss, aes(x = Education, y = Fertility)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  geom_label(
+    data = NULL,
+    aes(x = 40, y = 80, label = eq_text),
+    parse = TRUE,
+    inherit.aes = FALSE
+  )
 ```
 
 ------------------------------------------------------------------------
@@ -95,7 +135,22 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+# 1. 
+attach(iris)
+plot(Sepal.Length, Petal.Length, type = "p", col = Species)
+legend(
+  "bottomright",
+  legend = unique(Species), 
+  col = unique(Species),
+  pch = 1
+)
+detach(iris)
 
+ggplot(
+  iris,
+  aes(x = Sepal.Length, y = Petal.Length, color = Species)
+) +
+  geom_point()
 ```
 
 ------------------------------------------------------------------------
@@ -114,7 +169,18 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
-
+library(ggsignif)
+p1 <- ggplot(
+  starwars %>% filter(!is.na(gender)), 
+  aes(x = gender, y = height)
+) +
+  geom_boxplot(na.rm = TRUE) +
+  geom_signif(
+    comparisons = list(c("feminine", "masculine")),
+    map_signif_level = TRUE,
+    na.rm = TRUE
+  )
+p1 + coord_fixed(ratio = 1 / 60)
 ```
 
 ------------------------------------------------------------------------
@@ -129,7 +195,16 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
-
+p2 <- ggplot(
+  iris, 
+  aes(x = Sepal.Length, y = Sepal.Width,
+      color = Species, shape = Species)
+) +
+  geom_point() +
+  geom_density2d() +
+  labs(title = "IRIS") +
+  theme_light()
+p2
 ```
 
 ------------------------------------------------------------------------
@@ -146,7 +221,22 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+level4 <- c(4, 6, 8, 468)
+mtcars.fct <- mtcars %>%
+  mutate(cyl.fct = factor(cyl, levels = level4)) %>%
+  bind_rows(
+    mutate(mtcars, cyl.fct = factor(468, levels = level4))
+  )
 
+p3 <- ggplot(
+  mtcars.fct,
+  aes(x = wt, y = mpg, color = cyl.fct)
+) +
+  geom_point() +
+  geom_smooth() +
+  facet_wrap(. ~ cyl.fct, ncol = 2, scales = "free") +
+  theme_bw()
+p3
 ```
 
 ------------------------------------------------------------------------
@@ -166,7 +256,29 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+mtcars.mod <- mtcars %>%
+  rownames_to_column() %>%
+  mutate(cyl.fct = factor(cyl, levels = c(4, 6, 8))) %>%
+  arrange(cyl.fct, mpg) %>%
+  mutate(rowname = factor(rowname, levels = rowname)) %>%
+  mutate(id = row_number(), angle = 90 - 360 * (id - 0.5) / n())
 
+p4 <- ggplot(
+  mtcars.mod,
+  aes(x = rowname, y = mpg, fill = cyl.fct)
+) +
+  geom_bar(stat = "identity") +
+  geom_text(
+    aes(x = rowname, y = mpg+2, label = rowname),
+    hjust = 0,
+    size = 3,
+    color = "#ADADAD",
+    angle = mtcars.mod$angle
+  ) +
+  ylim(-10, 45) +
+  coord_polar() +
+  theme_void()
+p4
 ```
 
 ## 练习与作业2：多图组合，将多个图画在一起
@@ -181,7 +293,18 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(cowplot)
 
+ggdraw() +
+  draw_plot(p3, x = 0, y = 0, width = 0.5, height = 1) +
+  draw_plot(p1, x = 0.5, y = 0.5, width = 0.5, height = 0.5) +
+  draw_plot(p2, x = 0.5, y = 0, width = 0.5, height = 0.5) +
+  draw_plot_label(
+    label = c("A", "B", "C"), 
+    size = 9, 
+    x = c(0, 0.5, 0.5), 
+    y = c(1, 1, 0.5)
+  )
 ```
 
 ------------------------------------------------------------------------
@@ -195,7 +318,20 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(gridExtra)
+library(ggpubr)
 
+grid.arrange(
+  p1,
+  arrangeGrob(p2, p4, ncol = 2),
+  nrow = 2
+) %>%
+  as_ggplot() +
+  draw_plot_label(
+    label = c("A", "B", "C"),
+    x = c(0, 0, 0.5),
+    y = c(1, 0.5, 0.5)
+  )
 ```
 
 ------------------------------------------------------------------------
@@ -209,7 +345,10 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(patchwork)
 
+(p1 / (p3 | p4) / p2) +
+  plot_annotation(tag_levels = "A")
 ```
 
 ## 练习与作业3：作图扩展
@@ -224,5 +363,5 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
-
+lattice::splom(mtcars[c(1,3,4,5,6)])
 ```
