@@ -13,7 +13,7 @@ output:
 knit: (
   function(inputFile, encoding) { 
 
-    pSubTitle <- 'talk10'
+    pSubTitle <- 'talk10-homework'
 
     rmarkdown::render( 
       input       = inputFile, 
@@ -81,7 +81,19 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
-plot(1:10)
+library(tidyverse)
+
+# 生成vector
+x <- rnorm(100000, mean = 0, sd = 1)
+
+#画出分布状况
+ggplot(data.frame(norm = x), aes(x = norm)) +
+  geom_density()
+
+# 计算各范围取值百分比
+c("mean+-1" = paste(sum(x <= 1 & x >= -1) / 1000, "%", sep = ""),
+  "mean+-2" = paste(sum(x <= 2 & x >= -2) / 1000, "%", sep = ""),
+  "mean+-3" = paste(sum(x <= 3 & x >= -3) / 1000, "%", sep = ""))
 ```
 
 ------------------------------------------------------------------------
@@ -90,21 +102,33 @@ plot(1:10)
 
 另外，在英文名后给出对应的中文名：
 
-    -   Uniform Distribution
+    -   Uniform Distribution：均匀分布
 
-    -   Normal Distribution
+    -   Normal Distribution：正态分布
 
-    -   Binomial Distribution
+    -   Binomial Distribution：二项分布
 
-    -   Poisson Distribution
+    -   Poisson Distribution：泊松分布
 
-    -   Exponential Distribution
+    -   Exponential Distribution：指数分布
 
-    -   Gamma Distribution
+    -   Gamma Distribution：伽马分布
 
 ```{r}
 ## 代码写这里，并运行；
+# 均匀分布
+dist = bind_rows(
+  tibble(type = "unif", data = runif(100000)),
+  tibble(type = "norm", data = rnorm(100000)),
+  tibble(type = "binom", data = rbinom(100000, 100, 0.5)),
+  tibble(type = "pois", data = rpois(100000, 5)),
+  tibble(type = "exp", data = rexp(100000)),
+  tibble(type = "gamma", data = rgamma(100000, 1))
+)
 
+ggplot(dist, aes(x = data)) +
+  geom_density() +
+  facet_wrap(~type, ncol = 3, scales = "free")
 ```
 
 ------------------------------------------------------------------------
@@ -115,7 +139,21 @@ plot(1:10)
 
 ```{r}
 ## 代码写这里，并运行；
+mtcars.bin <- mtcars %>%
+  mutate(
+    equal.sized = ntile(wt, n = 4),
+    equal.distance = cut(
+      wt,
+      seq(min(wt), max(wt), (max(wt) - min(wt)) / 4),
+      include.lowest = TRUE
+    )
+  )
 
+# equal-sized bin在分组时确保每组元素个数相同
+table(mtcars.bin$equal.sized)
+
+# equal-distance bin在分组时确保每组的间隔一样大
+table(mtcars.bin$equal.distance)
 ```
 
 ------------------------------------------------------------------------
@@ -126,7 +164,12 @@ plot(1:10)
 
 ```{r}
 ## 代码写这里，并运行；
-
+s.iqr <- IQR(swiss$Infant.Mortality)
+s.sum <- summary(swiss$Infant.Mortality)
+swiss %>%
+  filter(Infant.Mortality < s.sum["1st Qu."] - 1.5 * s.iqr |
+         Infant.Mortality > s.sum["3rd Qu."] + 1.5 * s.iqr) %>%
+  .$Infant.Mortality
 ```
 
 ------------------------------------------------------------------------
@@ -144,12 +187,16 @@ head(Data);
 
 ```{r}
 ## 代码写这里，并运行；
+# t-Test
+with(Data, t.test(Steps ~ Sex)["p.value"])
 
+# Wilcoxon test
+with(Data, wilcox.test(Steps ~ Sex)["p.value"])
 ```
 
     -    两种检测方法的`p.value`哪个更显著？为什么？
 
-答：
+答：两种检测方法中t-Test的p.value更显著。因为t-Test评估的是均值的差异，而Wilcoxon test评估的是中值的差异，在此例中，两个性别步数的均值差异略大于中值差异。
 
 ------------------------------------------------------------------------
 
@@ -166,8 +213,13 @@ head(scores);
 
 ```{r}
 ## 代码写这里，并运行；
+scores.wide <- scores %>%
+  spread(key = Time, value = Score)
 
+with(scores.wide, t.test(After, Before, paired = TRUE))
 ```
+
+答：计算得p-value为0.004163 < 0.01，存在显著差异，说明同学们的成绩有普遍提高。
 
 ## 练习与作业2：作图
 
@@ -188,16 +240,28 @@ data.fig3a <- read_csv( file = "../data/talk10/nc2015_data_for_fig3a.csv" );
 
 ```{r}
 ## 代码写这里，并运行；
+library(ggsignif)
 
+ggplot(data.fig3a, aes(x = factor(tai), y = zAA1.at)) +
+  geom_boxplot(fill = "#22AD5C", linetype = 1,
+               outlier.size = 1, width = 0.6) +
+  xlab("tAI group") +
+  ylab(expression(italic(S[zAA1]))) +
+  scale_x_discrete(breaks = 1:5, labels = paste0("Q", 1:5)) +
+  geom_hline(yintercept = 0, colour = "red", linetype = 2) +
+  geom_signif(comparisons = list(1:2, 2:3, 3:4, 4:5),
+              test = "wilcox.test", step_increase = 0.1)
 ```
 
 **问：** 这组数据可以用`t.test`吗？为什么？
 
-答：
+答：不能，因为部分数据中存在大量离群值，呈偏态分布，不适合使用t-Test。
 
 ```{r}
 ## 代码写这里，并运行；
-
+ggplot(data.fig3a, aes(x = zAA1.at, color = factor(tai))) +
+  geom_density() +
+  xlab(expression(italic(S[zAA1])))
 ```
 
 ------------------------------------------------------------------------
@@ -214,7 +278,33 @@ data.fig3a <- read_csv( file = "../data/talk10/nc2015_data_for_fig3a.csv" );
 
 ```{r}
 ## 代码写这里，并运行；
+mtcars.linear <- lm(mtcars$mpg ~ mtcars$wt)
+mtcars.cor = cor.test(mtcars$wt, mtcars$mpg)
+eq_text <- substitute(
+  atop(
+    italic(y) == a %.% italic(x) + b,
+    list(italic(r)^2 == r2, italic(p) == pvalue)
+  ),
+  list(
+    a = format(coef(mtcars.linear)[[2]], digits = 2),
+    b = format(coef(mtcars.linear)[[1]], digits = 2),
+    r2 = format(summary(mtcars.linear)$r.squared, digits = 2),
+    pvalue = format(mtcars.cor$p.value, digits = 2)
+  )
+)
 
+eq_text <- as.expression(eq_text)
+eq_text <- as.character(eq_text)
+
+ggplot(mtcars, aes(x = wt, y = mpg)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  geom_label(
+    data = NULL,
+    aes(x = 4.5, y = 30, label = eq_text),
+    parse = TRUE,
+    inherit.aes = FALSE
+  )
 ```
 
 ## 练习与作业3：线性模型与预测
@@ -243,5 +333,39 @@ ggplot(wts2, aes( factor( age ), wt ) ) + geom_boxplot() + coord_flip();
 
 ```{r}
 ## 代码写这里，并运行；
+library(FSA)
 
+# 构建线性回归模型
+wts2.model <- lm(wt ~ age + class, data = wts2)
+anova(wts2.model)
+
+# 进行预测
+wts2.pred <- predict(
+  wts2.model,
+  wts2 %>% select(age, class)
+)
+wts2.cmp <- data.frame(
+  ref = wts2$wt,
+  pred = wts2.pred
+)
+
+ggplot(wts2.cmp, aes(x = ref, y = pred)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+
+# 计算相关性
+wts2.cor <- with(wts2.cmp, cor.test(pred, ref))
+wts2.cor$estimate
+
+# 线性公式
+wts2.coef <- coef(wts2.model)
+
+paste0(
+  "wt = ",
+  format(wts2.coef["age"], digits = 3),
+  " * age + ",
+  format(wts2.coef["class"], digits = 3),
+  " * class + ",
+  format(wts2.coef[1], digits = 3)
+)
 ```
