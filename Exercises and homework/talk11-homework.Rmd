@@ -61,7 +61,62 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(tidyverse)
+library(caret)
+income.dat <- read_csv("./data/talk11/income.data_.zip")
 
+# 1. 用线性回归分析关系
+income.lm <- lm(income.dat$happiness ~ income.dat$income)
+
+# 2. 绘制income和happiness关系
+eq_text <- substitute(
+  italic(y) == a %.% italic(x) + b,
+  list(
+    a = format(coef(income.lm)[[2]], digits = 2),
+    b = format(coef(income.lm)[[1]], digits = 2)
+  )
+) %>%
+  as.expression() %>%
+  as.character()
+
+ggplot(income.dat, aes(x = income, y = happiness)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  geom_label(
+    data = NULL,
+    aes(x = 2.5, y = 6, label = eq_text),
+    parse = TRUE,
+    inherit.aes = FALSE
+  )
+
+# 3. 预测happiness值
+happiness.pred <- predict(income.lm, income.dat['income'])
+
+# 4. 绘制预测值与真实值的关系
+happiness.cmp <- data.frame(
+  ref = income.dat$happiness,
+  pred = happiness.pred
+)
+
+happiness.r2 <- with(happiness.cmp, R2(pred, ref))
+r2_text <- substitute(
+  italic(r)^2 == r2,
+  list(r2 = format(happiness.r2, digits = 4))
+) %>%
+  as.expression() %>%
+  as.character()
+
+ggplot(happiness.cmp, aes(x = ref, y = pred)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Reference") +
+  ylab("Prediction") +
+  geom_label(
+    data = NULL,
+    aes(x = 1, y = 5, label = r2_text),
+    parse = TRUE,
+    inherit.aes = FALSE
+  )
 ```
 
 ------------------------------------------------------------------------
@@ -80,7 +135,89 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(relaimpo)
+heart.dat <- read_csv("./data/talk11/heart.data_.zip")
 
+# 1. 线性回归分析
+heart.lm <- lm(
+  heart.disease ~ biking + smoking,
+  data = heart.dat
+)
+
+# 2. 线性回归公式
+heart.coef <- coef(heart.lm)
+
+paste0(
+  "heart.disease = ",
+  format(heart.coef["biking"], digits = 3),
+  " * biking + ",
+  format(heart.coef["smoking"], digits = 3),
+  " * smoking + ",
+  format(heart.coef[1], digits = 3)
+)
+
+# 3. biking和smoking的影响
+# 由系数可见，biking与heart.disease负相关
+# 而smoking与heart.disease正相关
+# 二者的影响程度接近，相对而言biking更大
+heart.coef
+
+# 4. 两个系数对变化的解释
+# 根据R^2的值，可以得到结论：
+# biking能解释87.5%的variance
+# smoking能解释9.6%的variance
+with(
+  heart.dat,
+  data.frame(
+    biking = R2(biking, heart.disease),
+    smoking = R2(smoking, heart.disease)
+  )
+)
+
+# 5. 计算重要性
+# 结论：biking比smoking更重要
+calc.relimp(heart.disease ~ biking + smoking, data = heart.dat)
+
+# 6. 预测
+heart.pred <- predict(heart.lm, heart.dat)
+
+heart.comp <- data.frame(
+  ref = heart.dat$heart.disease,
+  pred = heart.pred
+)
+
+heart.pred.r2 <- with(heart.comp, R2(ref, pred))
+r2_text <- substitute(
+  italic(r)^2 == r2,
+  list(r2 = format(heart.pred.r2, digits = 4))
+) %>%
+  as.expression() %>%
+  as.character()
+
+ggplot(heart.comp, aes(x = ref, y = pred)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  xlab("Reference") +
+  ylab("Prediction") +
+  geom_label(
+    data = NULL,
+    aes(x = 3, y = 17, label = r2_text),
+    parse = TRUE,
+    inherit.aes = FALSE
+  )
+
+# 7. 考虑互作关系
+# 结论：在建模时考虑互作关系，不会明显提高模型的R2，
+# 这说明收集到的数据中biking与smoking并不存在强关联。
+heart.lm2 <- lm(
+  heart.disease ~ biking * smoking,
+  data = heart.dat
+)
+
+data.frame(
+  no_interaction = summary(heart.lm)$r.squared,
+  with_interaction = summary(heart.lm2)$r.squared
+)
 ```
 
 ------------------------------------------------------------------------
@@ -91,7 +228,21 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+iris.dat <- iris %>% filter(Species %in% c("setosa", "virginica"))
+iris.binom <- glm(Species ~ Sepal.Length + Sepal.Width + 
+                  Petal.Length + Petal.Width,
+                  data = iris.dat, family = binomial)
 
+# 当type取值为link时，给出的分类是log-odds
+# （即通过logit函数表示的属于某一类的概率）
+# 当type取值为response时，给出的则是直接的概率值
+data.frame(
+  ref = iris.dat$Species,
+  pred.link = predict(iris.binom, iris.dat, type = "link"),
+  pred.response = predict(iris.binom, iris.dat, type = "response")
+) %>%
+  sample_n(6) %>%
+  arrange(ref)
 ```
 
 ## 练习与作业2：non-linear regression
@@ -109,5 +260,47 @@ Sys.getenv("HOME")
 
 ```{r}
 ## 代码写这里，并运行；
+library(earth)
+library(vip)
+set.seed(1129)
 
+# 1. 使用earth包建模
+cv.mars <- train(
+  Fertility ~ .,
+  data = swiss,
+  method = "earth",
+  trControl = trainControl(method = "cv", number = 10)
+)
+cv.mars
+
+# 2. 使用lm建模
+cv.lm <- train(
+  Fertility ~ .,
+  data = swiss,
+  method = "lm",
+  trControl = trainControl(method = "cv", number = 10)
+)
+cv.lm
+
+# 3. 比较RMSE和R^2的指标
+# 可以得到线性模型（lm）更优的结论
+data.frame(
+  name = c("MARS", "LM"),
+  r.squared = c(
+    cv.mars[["results"]][["Rsquared"]][2],
+    cv.lm[["results"]][["Rsquared"]]
+  ),
+  RMSE = c(
+    cv.mars[["results"]][["RMSE"]][2],
+    cv.lm[["results"]][["RMSE"]]
+  )
+)
+
+# 4. 查看feature重要性
+plot.mars <- vip(cv.mars, num_features = 5, geom = "point", value = "gcv") +
+  ggtitle("MARS: GCV")
+plot.lm <- vip(cv.lm, num_features = 5, geom = "point", value = "gcv") +
+  ggtitle("LM: GCV")
+
+gridExtra::grid.arrange(plot.mars, plot.lm, ncol = 2)
 ```
